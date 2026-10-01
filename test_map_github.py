@@ -43,7 +43,7 @@ def load_data():
 
     df = pd.read_excel(excel_file, sheet_name="Sheet3")
     agency_df = pd.read_excel(excel_file, sheet_name="Agency_Data")
-    tracts = gpd.read_file(shapefile)
+    tracts = gpd.read_file(shapefile, engine="pyogrio")
 
     return df, agency_df, tracts
 
@@ -119,19 +119,93 @@ def get_lila_color(val):
 # PAGE TITLE
 # ==========================================================
 
-st.title("Bivariate Classification Visualization")
+st.title("Food Access and SNAP Need Dashboard")
+
+st.markdown(
+    """
+This dashboard compares **community need** with **food-assistance access** across census tracts
+in the Second Harvest Food Bank of Northwest North Carolina (SHFBNWNC) service area.
+
+The maps are intended to help users see where higher levels of SNAP participation overlap with
+the presence or absence of food-assistance agencies, and how those patterns compare with a
+separate federal measure of food access.
+"""
+)
+
+with st.expander("Definitions and data sources", expanded=False):
+    st.markdown(
+        """
+### What is the SNAP bivariate classification?
+
+A **bivariate classification** combines two variables in the same map. Here, each census tract
+is classified using:
+
+1. **ACS 5-year SNAP participation relative to the service-area median** for the selected year
+   (above or below the median), and
+2. **Food-assistance agency presence** in the tract (agency present or no agency present).
+
+Combining those two dimensions produces four groups:
+
+- **Above SNAP Median, No Agency Presence** – relatively high SNAP participation and no agency located in the tract.
+- **Above SNAP Median, Agency Presence** – relatively high SNAP participation and at least one agency located in the tract.
+- **Below SNAP Median, No Agency Presence** – relatively lower SNAP participation and no agency located in the tract.
+- **Below SNAP Median, Agency Presence** – relatively lower SNAP participation and at least one agency located in the tract.
+
+This classification is a **screening and visualization tool**. It does not by itself mean that a
+tract is food insecure or that residents have no access to assistance.
+
+### What does LI/LA mean?
+
+**LI/LA** means **Low-Income and Low-Access**. It is a census-tract food-access measure developed
+by the **U.S. Department of Agriculture Economic Research Service (USDA ERS)**. USDA identifies
+low-income tracts using income and poverty criteria and measures low access using distance from
+residents to supermarkets, supercenters, or large grocery stores.
+
+In this dashboard:
+
+- **1** = identified as LI/LA in the source data,
+- **0** = not identified as LI/LA in the source data,
+- **Not In Data** = an LI/LA classification was not available for that tract in the dataset used.
+
+The exact distance threshold depends on the USDA LI/LA indicator used when the project dataset
+was prepared. The dashboard therefore reports the classification contained in the source file
+rather than assigning a new USDA classification.
+
+### Data used in this dashboard
+
+- **SNAP participation:** census tract-level estimates from the **American Community Survey (ACS) 5-year estimates** for 2022 and 2023.
+- **Agency locations:** partner-agency latitude and longitude records contained in the workbook's `Agency_Data` sheet.
+- **Census tract boundaries:** 2023 North Carolina Cartographic Boundary File from the **U.S. Census Bureau**.
+- **LI/LA classification:** USDA Economic Research Service (USDA ERS) food-access data incorporated into the project dataset.
+
+[USDA ERS Food Access Research Atlas documentation](https://www.ers.usda.gov/data-products/food-access-research-atlas/documentation)
+"""
+    )
 
 
 # ==========================================================
 # MAP TYPE SELECTOR
 # ==========================================================
 
-st.subheader("SNAP / LI-LA Map")
+st.subheader("Compare SNAP Need and Food Access")
 
 map_mode = st.selectbox(
     "Select map visualization",
     ["SNAP Bivariate Classification", "LI/LA Classification"]
 )
+
+if map_mode == "SNAP Bivariate Classification":
+    st.info(
+        "How to read this map: each tract is grouped by whether its SNAP participation is "
+        "above or below the service-area median and whether a food-assistance agency is "
+        "located in that tract. The map therefore shows two dimensions at the same time."
+    )
+else:
+    st.info(
+        "How to read this map: LI/LA means Low-Income and Low-Access. This view shows the "
+        "LI/LA status recorded for each tract in the project dataset, based on USDA ERS "
+        "food-access information."
+    )
 
 
 # ==========================================================
@@ -140,7 +214,7 @@ map_mode = st.selectbox(
 
 if map_mode == "SNAP Bivariate Classification":
 
-    acs_year = st.selectbox("Select ACS Data Year", ["2022","2023"])
+    acs_year = st.selectbox("Select ACS 5-Year SNAP Estimate", ["2022", "2023"])
 
     if acs_year == "2022":
         formulation_col = "Formulation 2022"
@@ -148,7 +222,7 @@ if map_mode == "SNAP Bivariate Classification":
         formulation_col = "Formulation 2023"
 
     selected = st.multiselect(
-        "Select bivariate classification",
+        "Filter bivariate categories",
         options=list(snap_colors.keys()),
         default=list(snap_colors.keys())
     )
@@ -159,7 +233,7 @@ if map_mode == "SNAP Bivariate Classification":
 else:
 
     selected = st.multiselect(
-        "Select LI/LA classification",
+        "Filter LI/LA status",
         options=["1","0","Not In Data"],
         default=["1","0","Not In Data"]
     )
