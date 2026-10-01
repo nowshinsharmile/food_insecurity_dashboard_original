@@ -123,64 +123,20 @@ st.title("Food Access and SNAP Need Dashboard")
 
 st.markdown(
     """
-This dashboard compares **community need** with **food-assistance access** across census tracts
-in the Second Harvest Food Bank of Northwest North Carolina (SHFBNWNC) service area.
+This dashboard shows **food need and food access** across census tracts in the
+Second Harvest Food Bank of Northwest North Carolina service area.
 
-The maps are intended to help users see where higher levels of SNAP participation overlap with
-the presence or absence of food-assistance agencies, and how those patterns compare with a
-separate federal measure of food access.
+**SNAP Bivariate Classification** combines two things:
+- whether SNAP participation is **above or below the service-area median**
+- whether a food-assistance agency is **located in the tract**
+
+**LI/LA** means **Low-Income and Low-Access**, a USDA measure used to identify
+areas where residents may have lower income and limited access to grocery stores.
+
+**Data sources:** ACS 5-year estimates (2022 and 2023), partner-agency data,
+U.S. Census Bureau tract boundaries, and USDA Economic Research Service LI/LA data.
 """
 )
-
-with st.expander("Definitions and data sources", expanded=False):
-    st.markdown(
-        """
-### What is the SNAP bivariate classification?
-
-A **bivariate classification** combines two variables in the same map. Here, each census tract
-is classified using:
-
-1. **ACS 5-year SNAP participation relative to the service-area median** for the selected year
-   (above or below the median), and
-2. **Food-assistance agency presence** in the tract (agency present or no agency present).
-
-Combining those two dimensions produces four groups:
-
-- **Above SNAP Median, No Agency Presence** – relatively high SNAP participation and no agency located in the tract.
-- **Above SNAP Median, Agency Presence** – relatively high SNAP participation and at least one agency located in the tract.
-- **Below SNAP Median, No Agency Presence** – relatively lower SNAP participation and no agency located in the tract.
-- **Below SNAP Median, Agency Presence** – relatively lower SNAP participation and at least one agency located in the tract.
-
-This classification is a **screening and visualization tool**. It does not by itself mean that a
-tract is food insecure or that residents have no access to assistance.
-
-### What does LI/LA mean?
-
-**LI/LA** means **Low-Income and Low-Access**. It is a census-tract food-access measure developed
-by the **U.S. Department of Agriculture Economic Research Service (USDA ERS)**. USDA identifies
-low-income tracts using income and poverty criteria and measures low access using distance from
-residents to supermarkets, supercenters, or large grocery stores.
-
-In this dashboard:
-
-- **1** = identified as LI/LA in the source data,
-- **0** = not identified as LI/LA in the source data,
-- **Not In Data** = an LI/LA classification was not available for that tract in the dataset used.
-
-The exact distance threshold depends on the USDA LI/LA indicator used when the project dataset
-was prepared. The dashboard therefore reports the classification contained in the source file
-rather than assigning a new USDA classification.
-
-### Data used in this dashboard
-
-- **SNAP participation:** census tract-level estimates from the **American Community Survey (ACS) 5-year estimates** for 2022 and 2023.
-- **Agency locations:** partner-agency latitude and longitude records contained in the workbook's `Agency_Data` sheet.
-- **Census tract boundaries:** 2023 North Carolina Cartographic Boundary File from the **U.S. Census Bureau**.
-- **LI/LA classification:** USDA Economic Research Service (USDA ERS) food-access data incorporated into the project dataset.
-
-[USDA ERS Food Access Research Atlas documentation](https://www.ers.usda.gov/data-products/food-access-research-atlas/documentation)
-"""
-    )
 
 
 # ==========================================================
@@ -267,6 +223,63 @@ folium.GeoJson(
         aliases=["County","Tract","Agency Count","Visit Change"]
     )
 ).add_to(m)
+
+# ----------------------------------------------------------
+# MAP LEGEND
+# ----------------------------------------------------------
+if map_mode == "SNAP Bivariate Classification":
+    legend_map1 = """
+    <div style="
+    position: fixed;
+    bottom: 40px; left: 40px;
+    width: 300px;
+    background-color: white;
+    border: 2px solid grey;
+    z-index: 9999;
+    font-size: 14px;
+    padding: 10px;
+    ">
+    <b>SNAP Bivariate Classification</b><br>
+
+    <i style="background:#ea524a;width:15px;height:15px;display:inline-block;margin-right:6px"></i>
+    Above SNAP Median, No Agency<br>
+
+    <i style="background:#6ecffa;width:15px;height:15px;display:inline-block;margin-right:6px"></i>
+    Below SNAP Median, No Agency<br>
+
+    <i style="background:#7dba53;width:15px;height:15px;display:inline-block;margin-right:6px"></i>
+    Below SNAP Median, Agency<br>
+
+    <i style="background:#f9dd5f;width:15px;height:15px;display:inline-block;margin-right:6px"></i>
+    Above SNAP Median, Agency
+    </div>
+    """
+else:
+    legend_map1 = """
+    <div style="
+    position: fixed;
+    bottom: 40px; left: 40px;
+    width: 210px;
+    background-color: white;
+    border: 2px solid grey;
+    z-index: 9999;
+    font-size: 14px;
+    padding: 10px;
+    ">
+    <b>LI/LA Classification</b><br>
+
+    <i style="background:#e5513f;width:15px;height:15px;display:inline-block;margin-right:6px"></i>
+    LI/LA<br>
+
+    <i style="background:#defd93;width:15px;height:15px;display:inline-block;margin-right:6px"></i>
+    Not LI/LA<br>
+
+    <i style="background:#e0e0e0;width:15px;height:15px;display:inline-block;margin-right:6px"></i>
+    Not In Data
+    </div>
+    """
+
+m.get_root().html.add_child(folium.Element(legend_map1))
 
 # Agency markers
 for _,row in agency_gdf.iterrows():
