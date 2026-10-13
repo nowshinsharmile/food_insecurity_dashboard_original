@@ -1034,7 +1034,7 @@ if map_mode == "SNAP Bivariate Classification":
 
     pivot_table = pd.crosstab(
 
-        gdf["LI/LA"],
+        gdf["LI/LA Status"],
 
         gdf[formulation_col]
 
@@ -1166,7 +1166,7 @@ st.write("Number of tracts with increased visits:", len(increase_df))
 
 pivot_inc = pd.crosstab(
 
-    increase_df["LI/LA"],
+    increase_df["LI/LA Status"],
 
     increase_df[formulation_col]
 
